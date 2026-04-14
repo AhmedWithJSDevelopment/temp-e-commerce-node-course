@@ -8,10 +8,75 @@ const createProduct = async (req, res) => {
   const product = await Product.create(req.body);
   res.status(StatusCodes.CREATED).json({ product });
 };
-const getAllProducts = async (req, res) => {
-  const products = await Product.find({});
+// const getAllProducts = async (req, res) => {
+//   const products = await Product.find({});
 
-  res.status(StatusCodes.OK).json({ products, count: products.length });
+//   res.status(StatusCodes.OK).json({ products, count: products.length });
+// };
+const getAllProducts = async (req, res) => {
+  const { search, category, company, shipping, order, price, page } = req.query;
+
+  const queryObject = {};
+
+  // 🔍 SEARCH (name)
+  if (search) {
+    queryObject.name = { $regex: search, $options: 'i' };
+  }
+
+  // 📦 CATEGORY
+  if (category && category !== 'all') {
+    queryObject.category = category;
+  }
+
+  // 🏢 COMPANY
+  if (company && company !== 'all') {
+    queryObject.company = company;
+  }
+
+  // 🚚 FREE SHIPPING
+  if (shipping === 'on') {
+    queryObject.freeShipping = true;
+  }
+
+  // 💰 PRICE
+  if (price) {
+    queryObject.price = { $lte: Number(price) };
+  }
+
+  // 🔢 PAGINATION
+  const pageNumber = Number(page) || 1;
+  const limit = 6;
+  const skip = (pageNumber - 1) * limit;
+
+  let result = Product.find(queryObject);
+
+  // 🔃 SORT
+  if (order === 'a-z') {
+    result = result.sort('name');
+  }
+  if (order === 'z-a') {
+    result = result.sort('-name');
+  }
+  if (order === 'high') {
+    result = result.sort('-price');
+  }
+  if (order === 'low') {
+    result = result.sort('price');
+  }
+
+  const products = await result.skip(skip).limit(limit);
+
+  const totalProducts = await Product.countDocuments(queryObject);
+  const pageCount = Math.ceil(totalProducts / limit);
+
+  res.status(StatusCodes.OK).json({
+    products,
+    pagination: {
+      totalProducts,
+      pageCount,
+      currentPage: pageNumber,
+    },
+  });
 };
 const getSingleProduct = async (req, res) => {
   const { id: productId } = req.params;
