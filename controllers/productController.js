@@ -14,12 +14,21 @@ const createProduct = async (req, res) => {
 //   res.status(StatusCodes.OK).json({ products, count: products.length });
 // };
 const getAllProducts = async (req, res) => {
-  const { search, category, company, shipping, order, price, page } = req.query;
+  const {
+    search,
+    category,
+    company,
+    sort,
+    price,
+    shipping,
+    page = 1,
+    limit = 10,
+  } = req.query;
 
   const queryObject = {};
 
   // 🔍 SEARCH (name)
-  if (search) {
+  if (search && search !== '') {
     queryObject.name = { $regex: search, $options: 'i' };
   }
 
@@ -28,13 +37,13 @@ const getAllProducts = async (req, res) => {
     queryObject.category = category;
   }
 
-  // 🏢 COMPANY
+  // 🏭 COMPANY
   if (company && company !== 'all') {
     queryObject.company = company;
   }
 
-  // 🚚 FREE SHIPPING
-  if (shipping === 'on') {
+  // 🚚 SHIPPING
+  if (shipping === 'true') {
     queryObject.freeShipping = true;
   }
 
@@ -43,38 +52,40 @@ const getAllProducts = async (req, res) => {
     queryObject.price = { $lte: Number(price) };
   }
 
-  // 🔢 PAGINATION
-  const pageNumber = Number(page) || 1;
-  const limit = 6;
-  const skip = (pageNumber - 1) * limit;
-
   let result = Product.find(queryObject);
 
   // 🔃 SORT
-  if (order === 'a-z') {
+  if (sort === 'a-z') {
     result = result.sort('name');
   }
-  if (order === 'z-a') {
+  if (sort === 'z-a') {
     result = result.sort('-name');
   }
-  if (order === 'high') {
+  if (sort === 'high') {
     result = result.sort('-price');
   }
-  if (order === 'low') {
+  if (sort === 'low') {
     result = result.sort('price');
   }
 
-  const products = await result.skip(skip).limit(limit);
+  // 📄 PAGINATION
+  const pageNumber = Number(page);
+  const limitNumber = Number(limit);
+  const skip = (pageNumber - 1) * limitNumber;
+
+  result = result.skip(skip).limit(limitNumber);
+
+  const products = await result;
 
   const totalProducts = await Product.countDocuments(queryObject);
-  const pageCount = Math.ceil(totalProducts / limit);
+  const numOfPages = Math.ceil(totalProducts / limitNumber);
 
-  res.status(StatusCodes.OK).json({
+  res.status(200).json({
     products,
+    count: totalProducts,
     pagination: {
-      totalProducts,
-      pageCount,
-      currentPage: pageNumber,
+      page: pageNumber,
+      pageCount: numOfPages,
     },
   });
 };
