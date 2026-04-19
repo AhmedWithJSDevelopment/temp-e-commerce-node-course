@@ -36,7 +36,14 @@ app.use(
   })
 );
 app.use(helmet());
-app.use(cors());
+// app.use(cors());
+
+app.use(
+  cors({
+    origin: "https://comfy-store-scroll-and-audio.netlify.app",
+    credentials: true,
+  })
+);
 app.use(xss());
 app.use(mongoSanitize());
 
