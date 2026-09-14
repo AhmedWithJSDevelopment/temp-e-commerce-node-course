@@ -63,14 +63,17 @@ app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);
 
 const port = process.env.PORT || 5000;
+
 const start = async () => {
   try {
     await connectDB(process.env.MONGO_URL);
-    app.listen(port, () =>
-      console.log(`Server is listening on port ${port}...`)
-    );
+
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`Server is listening on 0.0.0.0:${port}...`);
+    });
   } catch (error) {
-    console.log(error);
+    console.error('Server startup error:', error);
+    process.exit(1);
   }
 };
 
